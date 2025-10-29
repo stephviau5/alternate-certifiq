@@ -158,6 +158,7 @@
         <div><strong>Grader:</strong> <span id="graderVal"></span></div>
         <div><strong>Cert #:</strong> <span id="certVal"></span></div>
         <div><strong>Chain / Proof:</strong> <span id="chainProof"></span></div>
+        <div id="ownerSection"><h3>Owner</h3><div id="ownerVal">Loading…</div></div>      
       </div>
 
       <div class="sectionTitle">Details</div>
@@ -183,92 +184,195 @@
   </div>
 
 <script>
-function getParam(name){ return new URL(window.location.href).searchParams.get(name); }
+  function getParam(name){
+    const url = new URL(window.location.href);
+    return url.searchParams.get(name);
+  }
 
-const imgEl = document.getElementById('cardImage');
-const itemTitleEl = document.getElementById('itemTitle');
-const gradeBadgeEl = document.getElementById('gradeBadge');
-const graderValEl = document.getElementById('graderVal');
-const certValEl = document.getElementById('certVal');
-const chainProofEl = document.getElementById('chainProof');
-const itemNameEl = document.getElementById('itemName');
-const itemSetEl = document.getElementById('itemSet');
-const itemYearEl = document.getElementById('itemYear');
-const itemAttrsEl = document.getElementById('itemAttrs');
-const externalLinkEl = document.getElementById('externalLink');
-const reportLinkEl = document.getElementById('reportLink');
-const pointerLinksEl = document.getElementById('pointerLinks');
-const lastVerifiedEl = document.getElementById('lastVerified');
-const errBox = document.getElementById('errorArea');
-document.getElementById('year').textContent = new Date().getFullYear();
+  // DOM refs
+  const imgEl            = document.getElementById('cardImage');
+  const itemTitleEl      = document.getElementById('itemTitle');
+  const gradeBadgeEl     = document.getElementById('gradeBadge');
+  const graderValEl      = document.getElementById('graderVal');
+  const certValEl        = document.getElementById('certVal');
+  const chainProofEl     = document.getElementById('chainProof');
+  const ownerValEl       = document.getElementById('ownerVal');
+  const itemNameEl       = document.getElementById('itemName');
+  const itemSetEl        = document.getElementById('itemSet');
+  const itemYearEl       = document.getElementById('itemYear');
+  const itemAttrsEl      = document.getElementById('itemAttrs');
+  const externalLinkEl   = document.getElementById('externalLink');
+  const reportLinkEl     = document.getElementById('reportLink');
+  const pointerLinksEl   = document.getElementById('pointerLinks');
+  const lastVerifiedEl   = document.getElementById('lastVerified');
+  const errBox           = document.getElementById('errorArea');
 
-const grader = (getParam('grader') || '').toLowerCase();
-const certId = getParam('id');
-graderValEl.textContent = grader || '—';
-certValEl.textContent = certId || '—';
+  document.getElementById('year').textContent = new Date().getFullYear();
 
-async function loadMetadata(){
-  if(!grader || !certId){ showError("Missing grader or ID."); return; }
-  const localUrl = `data/${encodeURIComponent(grader)}/${encodeURIComponent(certId)}.json`;
-  let meta;
-  try {
-    const res = await fetch(localUrl, {cache:'no-store'});
-    if(!res.ok) throw new Error("fetch failed");
-    meta = await res.json();
-  } catch(e){ console.warn("No local metadata.", e); showError("No local metadata."); return; }
-  render(meta);
-}
+  const grader = (getParam('grader') || '').toLowerCase();
+  const certId = getParam('id');
 
-function showError(){ errBox.style.display='block'; }
-function getAttr(meta,trait){ if(!Array.isArray(meta.attributes)) return; const f=meta.attributes.find(a=>a?.trait_type===trait); return f?f.value:undefined; }
+  graderValEl.textContent = grader || '—';
+  certValEl.textContent   = certId || '—';
 
-function render(meta){
-  const nameVal=meta.name||'—';
-  const imgUrl=meta.image||'';
-  const cardVal=getAttr(meta,'Card')||'—';
-  const setVal=getAttr(meta,'Set')||'—';
-  const variantVal=getAttr(meta,'Variant');
-  const numberVal=getAttr(meta,'Number');
-  const graderText=getAttr(meta,'Grader')||grader||'—';
-  const certNumText=getAttr(meta,'Certification Number')||certId||'—';
-  const officialGrade=getAttr(meta,'Official Grade')||'UNVERIFIED';
-  const scoreVal=getAttr(meta,'CertifIQ Score');
-  const versionVal=getAttr(meta,'Version');
-  let yearGuess='—'; if(setVal){ const m=setVal.match(/\b(19|20)\d{2}\b/); if(m) yearGuess=m[0]; }
-  const extras=[]; if(variantVal) extras.push(`${variantVal}`); if(numberVal) extras.push(`#${numberVal}`); if(scoreVal) extras.push(`Score ${scoreVal}/100`); if(versionVal) extras.push(versionVal);
-  const extrasDisplay=extras.length?extras.join(', '):'—';
-  const lastVerifiedText='—';
-  const externalUrl=meta.external_url||''; const reportUrl=meta.report_url||'';
+  async function loadMetadata() {
+    if (!grader || !certId) {
+      showError("Missing grader or ID.");
+      return;
+    }
 
-  const CONTRACT_ADDR='0x702d27AF329c56FE91ef2e09Bf445f86f7Ab8846';
-  const shortContract=CONTRACT_ADDR.slice(0,6)+'...'+CONTRACT_ADDR.slice(-4);
-  const polygonUrl=certId?`https://polygonscan.com/token/${CONTRACT_ADDR}?a=${encodeURIComponent(certId)}`:`https://polygonscan.com/token/${CONTRACT_ADDR}`;
+    const localUrl = `data/${encodeURIComponent(grader)}/${encodeURIComponent(certId)}.json`;
 
-  itemTitleEl.textContent=nameVal;
-  gradeBadgeEl.textContent=officialGrade;
-  imgEl.src=imgUrl; imgEl.alt=nameVal;
-  graderValEl.textContent=graderText;
-  certValEl.textContent=certNumText;
-  chainProofEl.innerHTML=`<a href="${polygonUrl}" target="_blank" rel="noopener">${shortContract}</a>`;
-  itemNameEl.textContent=cardVal; itemSetEl.textContent=setVal; itemYearEl.textContent=yearGuess; itemAttrsEl.textContent=extrasDisplay;
-  lastVerifiedEl.textContent=lastVerifiedText;
+    let meta;
+    try {
+      const res = await fetch(localUrl, { cache: 'no-store' });
+      if (!res.ok) throw new Error("local fetch failed " + res.status);
+      meta = await res.json();
+    } catch (e) {
+      console.warn("Local metadata not found.", e);
+      showError("No local metadata.");
+      return;
+    }
 
-  externalLinkEl.innerHTML=externalUrl?`<a href="${externalUrl}" target="_blank" rel="noopener">Open in CertifiQ</a>`:'—';
-  reportLinkEl.innerHTML=reportUrl?`<a href="${reportUrl}" target="_blank" rel="noopener">View Report JSON</a>`:'—';
+    render(meta);
+    fetchOwner("0x702d27AF329c56FE91ef2e09Bf445f86f7Ab8846", certId);
+  }
 
-  // 🔗 Pointer section (static for now)
-  const pointerIndex="https://chocolate-added-bovid-122.mypinata.cloud/ipfs/bafybeicdsqfj4672wp7kbnh4n2yri3sd5yxfjwhrsurpnkiejasctldpm4/index.json";
-  const pointerGallery="https://chocolate-added-bovid-122.mypinata.cloud/ipfs/bafybeicdsqfj4672wp7kbnh4n2yri3sd5yxfjwhrsurpnkiejasctldpm4/gallery";
-  const pointerLogs="https://chocolate-added-bovid-122.mypinata.cloud/ipfs/bafkreidxt26qgpf766t7n7l5m7dbc6hodog5qfsnl33dk2md3oey2yjtlu";
-  const groupFolder="https://chocolate-added-bovid-122.mypinata.cloud/ipfs/bafybeicdsqfj4672wp7kbnh4n2yri3sd5yxfjwhrsurpnkiejasctldpm4/";
-  pointerLinksEl.innerHTML=`
-    <a href="${groupFolder}" target="_blank" rel="noopener">Group Folder</a> |
-    <a href="${pointerIndex}" target="_blank" rel="noopener">Index</a> |
-    <a href="${pointerGallery}" target="_blank" rel="noopener">Gallery</a> |
-    <a href="${pointerLogs}" target="_blank" rel="noopener">Logs</a>
-  `;
-}
-loadMetadata();
+  function showError() {
+    errBox.style.display = 'block';
+  }
+
+  function getAttr(meta, traitName){
+    if (!Array.isArray(meta.attributes)) return undefined;
+    const found = meta.attributes.find(a => a && a.trait_type === traitName);
+    return found ? found.value : undefined;
+  }
+
+  function render(meta){
+    const nameVal        = meta.name || '—';
+    const imgUrl         = meta.image || '';
+
+    const cardVal        = getAttr(meta, 'Card') || '—';
+    const setVal         = getAttr(meta, 'Set') || '—';
+    const variantVal     = getAttr(meta, 'Variant');
+    const numberVal      = getAttr(meta, 'Number');
+    const graderText     = getAttr(meta, 'Grader') || grader || '—';
+    const certNumText    = getAttr(meta, 'Certification Number') || certId || '—';
+    const officialGrade  = getAttr(meta, 'Official Grade') || 'UNVERIFIED';
+    const scoreVal       = getAttr(meta, 'CertifIQ Score');
+    const versionVal     = getAttr(meta, 'Version');
+
+    let yearGuess = '—';
+    if (setVal) {
+      const m = setVal.match(/\b(19|20)\d{2}\b/);
+      if (m) yearGuess = m[0];
+    }
+
+    const extras = [];
+    if (variantVal) extras.push(`${variantVal}`);
+    if (numberVal)  extras.push(`#${numberVal}`);
+    if (scoreVal)   extras.push(`Score ${scoreVal}/100`);
+    if (versionVal) extras.push(versionVal);
+    const extrasDisplay = extras.length ? extras.join(', ') : '—';
+
+    const externalUrl = meta.external_url || '';
+    const reportUrl   = meta.report_url   || '';
+    const lastVerifiedText = '—';
+
+    const CONTRACT_ADDR = '0x702d27AF329c56FE91ef2e09Bf445f86f7Ab8846';
+    const shortContract = CONTRACT_ADDR.slice(0, 6) + '...' + CONTRACT_ADDR.slice(-4);
+    const polygonUrl = certId
+      ? `https://polygonscan.com/token/${CONTRACT_ADDR}?a=${encodeURIComponent(certId)}`
+      : `https://polygonscan.com/token/${CONTRACT_ADDR}`;
+
+    // ---- Pointer Files (dynamic)
+    let pointerRoot = "";
+    let logsHttpUrl = "";
+
+    if (meta.pointer) {
+      let ptrHttp = meta.pointer.replace(
+        /^ipfs:\/\//i,
+        "https://chocolate-added-bovid-122.mypinata.cloud/ipfs/"
+      );
+      ptrHttp = ptrHttp.replace(/\/index\.json$/i, "");
+      pointerRoot = ptrHttp;
+    }
+
+    if (meta.logs) {
+      logsHttpUrl = meta.logs.replace(
+        /^ipfs:\/\//i,
+        "https://chocolate-added-bovid-122.mypinata.cloud/ipfs/"
+      );
+    }
+
+    if (pointerRoot) {
+      const indexUrl   = pointerRoot + "/index.json";
+      const galleryUrl = pointerRoot + "/gallery";
+      const groupUrl   = pointerRoot + "/";
+
+      let linksHtml = `
+        <a href="${groupUrl}" target="_blank" rel="noopener">Group Folder</a> |
+        <a href="${indexUrl}" target="_blank" rel="noopener">Index</a> |
+        <a href="${galleryUrl}" target="_blank" rel="noopener">Gallery</a>
+      `;
+      if (logsHttpUrl) {
+        linksHtml += ` | <a href="${logsHttpUrl}" target="_blank" rel="noopener">Logs</a>`;
+      }
+      pointerLinksEl.innerHTML = linksHtml;
+    } else {
+      pointerLinksEl.textContent = '—';
+    }
+
+    // ---- DOM updates
+    itemTitleEl.textContent  = nameVal;
+    gradeBadgeEl.textContent = officialGrade;
+    imgEl.src = imgUrl;
+    imgEl.alt = nameVal || 'Collectible image';
+
+    graderValEl.textContent = graderText;
+    certValEl.textContent   = certNumText;
+
+    chainProofEl.innerHTML = `<a href="${polygonUrl}" target="_blank" rel="noopener">${shortContract}</a>`;
+
+    itemNameEl.textContent     = cardVal || '—';
+    itemSetEl.textContent      = setVal || '—';
+    itemYearEl.textContent     = yearGuess || '—';
+    itemAttrsEl.textContent    = extrasDisplay;
+    lastVerifiedEl.textContent = lastVerifiedText;
+
+    externalLinkEl.innerHTML = externalUrl
+      ? `<a href="${externalUrl}" target="_blank" rel="noopener">Open in CertifiQ</a>`
+      : '—';
+    reportLinkEl.innerHTML = reportUrl
+      ? `<a href="${reportUrl}" target="_blank" rel="noopener">View Report JSON</a>`
+      : '—';
+  }
+
+  // ---- New: Fetch Owner from Polygonscan API ----
+  async function fetchOwner(contractAddr, tokenId) {
+    const ownerCell = document.getElementById("ownerVal");
+    try {
+      // Replace with your real Polygonscan API key
+      const apiKey = "YOUR_API_KEY";
+      const url = `https://api.polygonscan.com/api?module=token&action=tokenowner&contractaddress=${contractAddr}&tokenid=${tokenId}&apikey=${apiKey}`;
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.status === "1" && data.result) {
+        const wallet = data.result;
+        const short = wallet.slice(0, 6) + "..." + wallet.slice(-4);
+        ownerCell.innerHTML = `<a href="https://polygonscan.com/address/${wallet}" target="_blank" rel="noopener">${short}</a>`;
+      } else {
+        ownerCell.textContent = "Not found";
+      }
+    } catch (err) {
+      console.error("Error fetching owner:", err);
+      ownerCell.textContent = "Error";
+    }
+  }
+
+  loadMetadata();
 </script>
+
 </body>
 </html>
