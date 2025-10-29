@@ -161,6 +161,38 @@ h1.mainTitle{
 .desc a{ color:#a855f7; text-decoration:none; }
 .desc a:hover{ text-decoration:underline; }
 
+.report-panel{
+  margin: .75rem 0 1rem;
+  padding: .75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #0b0b0d;
+}
+.report-grid{
+  display: grid;
+  grid-template-columns: 40% 60%;
+  gap: .35rem .75rem;
+  font-size: .85rem;
+}
+.report-grid .label{
+  color: var(--text-dim);
+}
+.report-grid .value{
+  color: var(--text-main);
+  font-weight: 600;
+  word-break: break-word;
+}
+.report-sublist{
+  margin: .25rem 0 0;
+  padding-left: 1rem;
+  font-weight: 600;
+}
+.report-muted{
+  color: var(--text-dim);
+  font-size: .8rem;
+}
+
+
   </style>
 </head>
 <body>
@@ -207,6 +239,10 @@ h1.mainTitle{
         or not mirrored yet.<br/><br/>Please contact CertifiQ support.</p>
       </div>
     </div>
+    <div id="reportPanel" class="report-panel" style="display:none;">
+  <div class="sectionTitle">Report Details</div>
+  <div id="reportDetails"></div>
+</div>
 
     <footer>© <span id="year"></span> CertifiQ Collectibles</footer>
   </div>
@@ -263,8 +299,13 @@ h1.mainTitle{
     }
 
     render(meta);
+
     fetchOwner("0x702d27AF329c56FE91ef2e09Bf445f86f7Ab8846", certId);
   }
+  if (meta.report_url) {
+  fetchAndRenderReport(meta.report_url);
+}
+
 
   function showError() {
     errBox.style.display = 'block';
@@ -290,6 +331,8 @@ h1.mainTitle{
     const scoreVal       = getAttr(meta, 'CertifIQ Score');
     const versionVal     = getAttr(meta, 'Version');
     const itemDescEl = document.getElementById('itemDesc');
+    const reportPanelEl   = document.getElementById('reportPanel');
+const reportDetailsEl = document.getElementById('reportDetails');
 
 
     let yearGuess = '—';
@@ -418,6 +461,117 @@ async function fetchOwner(contractAddr, tokenId) {
       ownerCell.textContent = "Error fetching owner";
     }
   }
+}
+async function fetchAndRenderReport(url){
+  try{
+    const res = await fetch(url, { cache: 'no-store' });
+    if(!res.ok) throw new Error('report fetch failed');
+    const report = await res.json();
+    renderReport(report);
+  }catch(e){
+    // hide panel on failure
+    reportPanelEl.style.display = 'none';
+  }
+}
+
+function renderReport(r){
+  // Try common fields first (adjusts to your schema), then fallback
+  const pick = (...paths) => {
+    for(const p of paths){
+      const val = getPath(r, p);
+      if (val !== undefined && val !== null && String(val).trim() !== '') return val;
+    }
+    return undefined;
+  };
+
+  const title        = pick(['title'], ['name'], ['card','title'], ['metadata','name']);
+  const score        = pick(['score'], ['certifiqScore'], ['grades','overall'], ['grading','score']);
+  const subgrades    = pick(['subgrades'], ['grades','sub'], ['grading','subgrades']); // array/object
+  const graderName   = pick(['grader'], ['grading','grader'], ['attributes','Grader']);
+  const gradedAt     = pick(['gradedAt'], ['timestamp'], ['grading','date']);
+  const serial       = pick(['serial'], ['cert'], ['certificate'], ['attributes','Certification Number']);
+  const variant      = pick(['variant'], ['attributes','Variant']);
+  const number       = pick(['number'], ['attributes','Number']);
+  const dimensions   = pick(['dimensions'], ['size']);
+  const notes        = pick(['notes'], ['comments'], ['grading','notes']);
+  const extras       = pick(['extras'], ['additional']);
+
+  const rows = [];
+  const pushRow = (label, value) => {
+    if (value === undefined || value === null || value === '') return;
+    if (Array.isArray(value)) {
+      rows.push([label, `<ul class="report-sublist">${value.map(v => `<li>${escapeHtml(formatVal(v))}</li>`).join('')}</ul>`]);
+    } else if (typeof value === 'object') {
+      // object → key: value list
+      const list = Object.entries(value).map(([k,v]) => `<div>${escapeHtml(k)}: <strong>${escapeHtml(formatVal(v))}</strong></div>`).join('');
+      rows.push([label, list]);
+    } else {
+      rows.push([label, escapeHtml(String(value))]);
+    }
+  };
+
+  pushRow('Title',         title);
+  pushRow('Score',         score);
+  pushRow('Subgrades',     subgrades);
+  pushRow('Grader',        graderName);
+  pushRow('Graded At',     formatDate(gradedAt));
+  pushRow('Certificate #', serial);
+  pushRow('Variant / No.', [variant, number].filter(Boolean).join(' • ') || undefined);
+  pushRow('Dimensions',    dimensions);
+  pushRow('Notes',         notes);
+  if (extras) pushRow('Extras', extras);
+
+  // Fallback: if we got nothing, pretty-print top-level scalars
+  if (rows.length === 0){
+    const scalars = Object.entries(r)
+      .filter(([,v]) => ['string','number','boolean'].includes(typeof v))
+      .slice(0, 10);
+    if (scalars.length){
+      scalars.forEach(([k,v]) => pushRow(k, v));
+    } else {
+      reportPanelEl.style.display = 'none';
+      return;
+    }
+  }
+
+  reportDetailsEl.innerHTML = `
+    <div class="report-grid">
+      ${rows.map(([label, value]) => `
+        <div class="label">${label}</div>
+        <div class="value">${value}</div>
+      `).join('')}
+    </div>
+    <div class="report-muted" style="margin-top:.5rem;">
+      Pulled from report.json
+    </div>
+  `;
+  reportPanelEl.style.display = '';
+}
+
+// --- small utils ---
+function getPath(obj, pathArr){
+  try{
+    let cur = obj;
+    for(const key of pathArr){
+      if (cur == null) return undefined;
+      if (typeof key === 'string') { cur = cur[key]; continue; }
+      return undefined;
+    }
+    return cur;
+  }catch{ return undefined; }
+}
+function formatDate(d){
+  if(!d) return undefined;
+  const dt = new Date(d);
+  return isNaN(dt) ? String(d) : dt.toLocaleString();
+}
+function formatVal(v){
+  if (v == null) return '';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+function escapeHtml(s){
+  return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }
 
 
