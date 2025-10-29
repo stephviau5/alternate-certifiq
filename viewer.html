@@ -349,27 +349,28 @@
   }
 
   // ---- New: Fetch Owner from Polygonscan API ----
-  async function fetchOwner(contractAddr, tokenId) {
-    const ownerCell = document.getElementById("ownerVal");
-    try {
-      // Replace with your real Polygonscan API key
-      const apiKey = "YOUR_API_KEY";
-      const url = `https://api.polygonscan.com/api?module=token&action=tokenowner&contractaddress=${contractAddr}&tokenid=${tokenId}&apikey=${apiKey}`;
-      const res = await fetch(url);
-      const data = await res.json();
+async function fetchOwner(contractAddr, tokenId) {
+  const ownerCell = document.getElementById("ownerVal");
+  try {
+    const apiKey = "KC4X5PD39SHKRXRE2UNIRUZ61AVE8R4EU4"; // replace with your real Polygonscan API key
+    const url = `https://api.polygonscan.com/api?module=account&action=tokennfttx&contractaddress=${contractAddr}&tokenid=${tokenId}&page=1&offset=1&sort=desc&apikey=${apiKey}`;
+    const res = await fetch(url);
+    const data = await res.json();
 
-      if (data.status === "1" && data.result) {
-        const wallet = data.result;
-        const short = wallet.slice(0, 6) + "..." + wallet.slice(-4);
-        ownerCell.innerHTML = `<a href="https://polygonscan.com/address/${wallet}" target="_blank" rel="noopener">${short}</a>`;
-      } else {
-        ownerCell.textContent = "Not found";
-      }
-    } catch (err) {
-      console.error("Error fetching owner:", err);
-      ownerCell.textContent = "Error";
+    if (data.status === "1" && data.result && data.result.length > 0) {
+      const tx = data.result[0];
+      const wallet = tx.to; // last recipient is current owner
+      const short = wallet.slice(0, 6) + "..." + wallet.slice(-4);
+      ownerCell.innerHTML = `<a href="https://polygonscan.com/address/${wallet}" target="_blank" rel="noopener">${short}</a>`;
+    } else {
+      ownerCell.textContent = "Not found";
     }
+  } catch (err) {
+    console.error("Error fetching owner:", err);
+    ownerCell.textContent = "Error";
   }
+}
+
 
   loadMetadata();
 </script>
