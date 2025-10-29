@@ -149,6 +149,15 @@
   object-fit: cover;
   display: block;
 }
+.desc{
+  margin:.5rem 0 1rem;
+  color:#d1d5db;        /* soft gray */
+  font-size:.9rem;
+  line-height:1.5;
+}
+.desc a{ color:#a855f7; text-decoration:none; }
+.desc a:hover{ text-decoration:underline; }
+
   </style>
 </head>
 <body>
@@ -167,6 +176,7 @@
         <span id="itemTitle">Loading…</span>
         <span class="badge" id="gradeBadge"></span>
       </h1>
+      <div id="itemDesc" class="desc"></div>
 
       <div class="kv">
         <div><strong>Grader:</strong> <span id="graderVal"></span></div>
@@ -275,6 +285,8 @@
     const officialGrade  = getAttr(meta, 'Official Grade') || 'UNVERIFIED';
     const scoreVal       = getAttr(meta, 'CertifIQ Score');
     const versionVal     = getAttr(meta, 'Version');
+    const itemDescEl = document.getElementById('itemDesc');
+
 
     let yearGuess = '—';
     if (setVal) {
@@ -360,6 +372,23 @@
     reportLinkEl.innerHTML = reportUrl
       ? `<a href="${reportUrl}" target="_blank" rel="noopener">View Report JSON</a>`
       : '—';
+
+      // Description (from JSON: meta.description)
+const rawDesc = meta.description || "";
+if (rawDesc.trim()) {
+  // auto-link URLs
+  const linked = rawDesc.replace(/(https?:\/\/[^\s)]+)\)?/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  // split on blank lines -> paragraphs; single newlines -> <br>
+  const html = linked
+    .split(/\n{2,}/)                 // paragraphs
+    .map(p => `<p>${p.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+  itemDescEl.innerHTML = html;
+  itemDescEl.style.display = "";
+} else {
+  itemDescEl.style.display = "none";
+}
+
   }
 
   // ---- New: Fetch Owner from Polygonscan API ----
