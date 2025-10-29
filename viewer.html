@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CertifiQ Certificate Viewer</title>
   <meta name="description" content="Verifiable collectible record powered by CertifiQ." />
+  <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
   <style>
     :root {
       --bg:#000;
@@ -352,29 +353,26 @@
 async function fetchOwner(contractAddr, tokenId) {
   const ownerCell = document.getElementById("ownerVal");
   try {
-    const apiKey = "KC4X5PD39SHKRXRE2UNIRUZ61AVE8R4EU4"; // your key
-    const url = `https://api.polygonscan.com/api?module=account&action=tokennfttx&contractaddress=${contractAddr}&tokenid=${tokenId}&page=1&offset=1&sort=desc&apikey=${apiKey}`;
-    const res = await fetch(url);
-    const data = await res.json();
+    // Use public Polygon RPC
+    const provider = new ethers.providers.JsonRpcProvider("https://polygon-rpc.com");
 
-    console.log("Polygonscan response:", data); // <— add this so you can inspect in DevTools
+    // Standard ERC-721 ABI fragment for ownerOf()
+    const abi = ["function ownerOf(uint256 tokenId) view returns (address)"];
+    const contract = new ethers.Contract(contractAddr, abi, provider);
 
-    if (data.status === "1" && data.result && data.result.length > 0) {
-      const tx = data.result[0];
-      const wallet = tx.to;
-      const short = wallet.slice(0, 6) + "..." + wallet.slice(-4);
-      ownerCell.innerHTML = `<a href="https://polygonscan.com/address/${wallet}" target="_blank" rel="noopener">${short}</a>`;
-    } else if (data.status === "1" && data.result && data.result.length === 0) {
-      ownerCell.textContent = "Not minted yet";
-    } else {
-      ownerCell.textContent = "Chain lookup failed";
-    }
+    const wallet = await contract.ownerOf(tokenId);
+
+    const short = wallet.slice(0, 6) + "..." + wallet.slice(-4);
+    ownerCell.innerHTML = `<a href="https://polygonscan.com/address/${wallet}" target="_blank" rel="noopener">${short}</a>`;
   } catch (err) {
     console.error("Error fetching owner:", err);
-    ownerCell.textContent = "Error";
+    if (err.code === "CALL_EXCEPTION") {
+      ownerCell.textContent = "Not minted yet";
+    } else {
+      ownerCell.textContent = "Error fetching owner";
+    }
   }
 }
-
 
 
   loadMetadata();
