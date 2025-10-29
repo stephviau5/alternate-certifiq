@@ -13,7 +13,7 @@
       --border:#2a2a2f;
       --text-main:#fff;
       --text-dim:#9ca3af;
-      --accent:#a855f7;
+      --accent:#fbb51a;
       --radius-xl:1rem;
       --radius-lg:.5rem;
       --font:system-ui,-apple-system,"Segoe UI",Roboto,Inter,Ubuntu,Cantarell,"Noto Sans",Helvetica,Arial,sans-serif;
@@ -128,6 +128,8 @@
       margin-top:1.5rem;
       grid-column:1 / -1;
     }
+    a{color:var(--accent);}
+
     a.backLink{
       display:inline-block;
       font-size:.75rem;
@@ -159,7 +161,7 @@
         <div><strong>Grader:</strong> <span id="graderVal"></span></div>
         <div><strong>Cert #:</strong> <span id="certVal"></span></div>
         <div><strong>Chain / Proof:</strong> <span id="chainProof"></span></div>
-        <div id="ownerSection"><h3>Owner</h3><div id="ownerVal">Loading…</div></div>      
+        <div id="ownerSection"><strong>Owner:</strong> <span id="ownerVal">Loading…</span></div>      
       </div>
 
       <div class="sectionTitle">Details</div>
