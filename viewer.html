@@ -232,9 +232,10 @@
       const CONTRACT_ADDR = '0x702d27AF329c56FE91ef2e09Bf445f86f7Ab8846';
       const shortContract = CONTRACT_ADDR.slice(0,6)+'...'+CONTRACT_ADDR.slice(-4);
       const polygonUrl = certId
-        ? `https://polygonscan.com/token/${CONTRACT_ADDR}?a=${encodeURIComponent(certId)}`
+        ? `https://polygonscan.com/nft/${CONTRACT_ADDR}/${encodeURIComponent(certId)}`
         : `https://polygonscan.com/token/${CONTRACT_ADDR}`;
-      chainProofEl.innerHTML = `<a href="${polygonUrl}" target="_blank" rel="noopener">${shortContract}</a>`;
+
+chainProofEl.innerHTML = `<a href="${polygonUrl}" target="_blank" rel="noopener">${shortContract}</a> (NFT view)`;
 
       // details table
       itemNameEl.textContent  = cardVal || '—';
