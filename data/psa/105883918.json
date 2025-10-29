@@ -1,0 +1,19 @@
+{
+  "name": "Pikachu — #173/165 — PSA 10",
+  "description": "2023 Pokémon 151 EN Pikachu Secret Rare, PSA-certified slab linked via CertifiQ.",
+  "image": "https://certifiq.tech/data/psa/105883918/105883918.jpg",
+  "external_url": "https://certifiq.tech/viewer.html?grader=psa&id=105883918",
+  "attributes": [
+    { "trait_type": "Set", "value": "2023 Pokémon 151 EN" },
+    { "trait_type": "Card", "value": "Pikachu" },
+    { "trait_type": "Variant", "value": "Secret Rare" },
+    { "trait_type": "Number", "value": "173/165" },
+    { "trait_type": "Grader", "value": "PSA" },
+    { "trait_type": "Certification Number", "value": "105883918" },
+    { "trait_type": "Official Grade", "value": "PSA 10" },
+    { "trait_type": "CertifIQ Score", "value": "99" },
+    { "trait_type": "Condition Tier", "value": "Gem Mint 10" },
+    { "trait_type": "Version", "value": "CertifIQ v1.2" }
+  ],
+  "report_url": "https://certifiq.tech/data/psa/105883918/report.json"
+}
